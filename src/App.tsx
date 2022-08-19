@@ -7,7 +7,6 @@ import { Button } from "@mui/material";
 import { formatPoints } from "./helpers/formatPoints";
 
 function App() {
-  const [detector, setDetector] = useState<any>();
   const [hipAngle, setHipAngle] = useState<any>("loading...");
 
   useEffect(() => {
@@ -18,10 +17,10 @@ function App() {
     const detector = await poseDetection.createDetector(
       poseDetection.SupportedModels.MoveNet
     );
-    setDetector(detector);
+
     setInterval(() => {
       detectPose(detector);
-    }, 500);
+    }, 300);
   };
 
   const getAngleBetweenPoints = (point1: any, point2: any, point3: any) => {
@@ -29,7 +28,7 @@ function App() {
       (Math.atan2(point1.y - point2.y, point1.x - point2.x) -
         Math.atan2(point3.y - point2.y, point3.x - point2.x)) *
       (180 / Math.PI);
-    return finalAngle > 0 ? finalAngle : 180 + finalAngle;
+    return Math.ceil(finalAngle > 0 ? finalAngle : 180 + finalAngle);
   };
 
   const detectPose = async (detector: any) => {
@@ -40,9 +39,14 @@ function App() {
 
     const video: any = document.getElementById("video");
     const points = await detect(video, detector);
+    if (points.length < 1) {
+      console.log("Ankle not visible in screen");
+      setHipAngle("Ankle not visible in screen");
+      return;
+    }
     const formattedPoints = formatPoints(points[0].keypoints);
     console.log(formattedPoints);
-    if (formattedPoints.left_ankle.score < 0.1) {
+    if (formattedPoints.left_ankle.score < 0.15) {
       console.log("Ankle not visible in screen");
       setHipAngle("Ankle not visible in screen");
       return;
@@ -56,17 +60,16 @@ function App() {
   };
 
   return (
-    <Grid container spacing={2}>
-      <div></div>
-      <Grid item xs={4}>
+    <>
+      <div>
         <Alert severity="success">Hip Angle: {hipAngle}</Alert>
-      </Grid>
-      <Grid item xs={8}>
-        <video id="video" controls autoPlay={false}>
+      </div>
+      <div>
+        <video id="video" controls autoPlay={false} width="320" height="240">
           <source id="currentVID" src="./leg_raise.mp4" type="video/mp4" />
         </video>
-      </Grid>
-    </Grid>
+      </div>
+    </>
   );
 }
 
